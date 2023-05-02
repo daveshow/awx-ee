@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install git+https://github.com/ansible/ansible-builder.git@1.2.0#egg=ansible-builder
+          python -m pip install git+https://github.com/ansible/ansible-builder.git@3.0.0rc1#egg=ansible-builder
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -85,7 +85,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
-          file: Containerfile
+          context: .
           platforms: linux/amd64
           # platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
