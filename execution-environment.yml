@@ -1,18 +1,90 @@
 ---
-version: 1
-build_arg_defaults:
-  # EE_BASE_IMAGE: 'ghcr.io/daveshow/ansible-runner:devel'
-  # EE_BUILDER_IMAGE: 'ghcr.io/daveshow/ansible-builder:devel'
-  EE_BASE_IMAGE: 'quay.io/ansible/ansible-runner:latest'
-  EE_BUILDER_IMAGE: 'quay.io/ansible/ansible-builder:latest'
+version: 3
+images:
+  base_image:
+    name: quay.io/centos/centos:stream9
 dependencies:
-  galaxy: _build/requirements.yml
-  system: _build/bindep.txt
-  python: _build/requirements.txt
+  ansible_core:
+    # We are carrying a backport into 2.14. We pin to <2.15 so we don't break
+    # builds as soon as 2.15 drops. We should drop our backport and remove this pin
+    # once 2.15 comes out.
+    package_pip: ansible-core<2.15
+  ansible_runner:
+    package_pip: ansible-runner
+  galaxy: |
+    ---
+    roles:
+      - src: geerlingguy.php
+        version: 3.7.0
+      - src: geerlingguy.php-versions
+        version: 4.0.2
+      - src: geerlingguy.ansible
+        version: 2.0.1
+      - src: geerlingguy.repo-epel
+        version: 1.2.4
+      - src: geerlingguy.repo-remi
+        version: 1.2.0
+      - src: geerlingguy.nginx
+        version: 2.7.0
+      - src: geerlingguy.redis
+        version: 1.6.0
+      - src: geerlingguy.postgresql
+        version: 2.0.1
+      - src: geerlingguy.jenkins
+        version: 4.3.0
+      - src: geerlingguy.java
+        version: 1.10.0
+      - src: geerlingguy.ssh-chroot-jail
+        version: 1.4.4
+      - src: geerlingguy.php-xdebug
+        version: 3.0.0
+      - src: geerlingguy.clamav
+        version: 1.3.2
+    collections:
+      - awx.awx
+      - amazon.aws
+      - ansible.posix
+      - ansible.windows
+      - awx.awx
+      - azure.azcollection
+      - google.cloud
+      - kubernetes.core
+      - openstack.cloud
+      - ovirt.ovirt
+      - redhatinsights.insights
+      - community.aws
+      - community.general
+  system: |
+    libcurl-devel [platform:rpm compile]
+    krb5-devel [platform:rpm compile]
+    krb5-workstation [platform:rpm]
+    subversion [platform:rpm]
+    subversion [platform:dpkg]
+    git-lfs [platform:rpm]
+    sshpass [platform:rpm]
+    rsync [platform:rpm]
+    epel-release [platform:rpm]
+  python: |
+    git+https://github.com/ansible/ansible-sign
+    ansible-runner>=2.3.1
+    ansible-core<2.15
+    # ansible<=2.9.27
+    dumb-init
+    ncclient
+    paramiko
+    pykerberos
+    pyOpenSSL
+    pypsrp[kerberos,credssp]
+    pywinrm[kerberos,credssp]
+    toml
+    pexpect>=4.5
+    python-daemon
+    pyyaml
+    six
 additional_build_steps:
-  prepend:
-    - RUN /usr/bin/python3 -m pip install --no-cache-dir --upgrade pip
-  append:
+  prepend_final:
+    - RUN $PYCMD -m pip install --no-cache-dir --upgrade pip
+  append_final:
     - RUN alternatives --set python /usr/bin/python3
     - COPY --from=quay.io/ansible/receptor:devel /usr/bin/receptor /usr/bin/receptor
     - COPY --from=1password/op:1.12.5 /usr/local/bin/op /usr/bin/op
@@ -20,8 +92,10 @@ additional_build_steps:
     - COPY --from=imega/jq:latest /usr/lib/* /usr/lib/
     - COPY --from=imega/jq:latest /lib/* /lib/
     - COPY --from=hashicorp/packer:light /bin/packer /usr/sbin/packer
+    - ADD https://raw.githubusercontent.com/ansible/ansible/ff3ee9c4bdac68909bcb769091a198a7c45e6350/lib/ansible/cli/inventory.py /usr/local/lib/python3.9/site-packages/ansible/cli/inventory.py
+    - RUN chmod 0644 /usr/local/lib/python3.9/site-packages/ansible/cli/inventory.py
     - RUN mkdir -p /var/run/receptor
-    - RUN python -m pip uninstall -y ansible-core && python -m pip install --force ansible==2.9.27
+    - RUN $PYCMD -m pip uninstall -y ansible-core && $PYCMD -m pip install --force ansible==2.9.27
     - ADD run.sh /run.sh
     - CMD /run.sh
     - USER 1000
