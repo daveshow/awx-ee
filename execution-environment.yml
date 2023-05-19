@@ -8,38 +8,11 @@ dependencies:
     # We are carrying a backport into 2.14. We pin to <2.15 so we don't break
     # builds as soon as 2.15 drops. We should drop our backport and remove this pin
     # once 2.15 comes out.
-    package_pip: ansible-core<2.15
+    package_pip: ansible-core>=2.15.0rc2,<2.16
   ansible_runner:
     package_pip: ansible-runner
   galaxy: |
     ---
-    roles:
-      - src: geerlingguy.php
-        version: 3.7.0
-      - src: geerlingguy.php-versions
-        version: 4.0.2
-      - src: geerlingguy.ansible
-        version: 2.0.1
-      - src: geerlingguy.repo-epel
-        version: 1.2.4
-      - src: geerlingguy.repo-remi
-        version: 1.2.0
-      - src: geerlingguy.nginx
-        version: 2.7.0
-      - src: geerlingguy.redis
-        version: 1.6.0
-      - src: geerlingguy.postgresql
-        version: 2.0.1
-      - src: geerlingguy.jenkins
-        version: 4.3.0
-      - src: geerlingguy.java
-        version: 1.10.0
-      - src: geerlingguy.ssh-chroot-jail
-        version: 1.4.4
-      - src: geerlingguy.php-xdebug
-        version: 3.0.0
-      - src: geerlingguy.clamav
-        version: 1.3.2
     collections:
       - awx.awx
       - amazon.aws
@@ -55,6 +28,8 @@ dependencies:
       - community.aws
       - community.general
   system: |
+    git-core [platform:rpm]
+    python3.9-devel [platform:rpm compile]
     libcurl-devel [platform:rpm compile]
     krb5-devel [platform:rpm compile]
     krb5-workstation [platform:rpm]
@@ -64,12 +39,9 @@ dependencies:
     sshpass [platform:rpm]
     rsync [platform:rpm]
     epel-release [platform:rpm]
+    python-unversioned-command [platform:rpm]
   python: |
     git+https://github.com/ansible/ansible-sign
-    ansible-runner>=2.3.1
-    ansible-core<2.15
-    # ansible<=2.9.27
-    dumb-init
     ncclient
     paramiko
     pykerberos
@@ -81,6 +53,7 @@ dependencies:
     python-daemon
     pyyaml
     six
+    jq
 additional_build_steps:
   prepend_final:
     - RUN $PYCMD -m pip install --no-cache-dir --upgrade pip
@@ -88,9 +61,6 @@ additional_build_steps:
     - RUN alternatives --set python /usr/bin/python3
     - COPY --from=quay.io/ansible/receptor:devel /usr/bin/receptor /usr/bin/receptor
     - COPY --from=1password/op:1.12.5 /usr/local/bin/op /usr/bin/op
-    - COPY --from=imega/jq:latest /usr/bin/jq /usr/bin/jq
-    - COPY --from=imega/jq:latest /usr/lib/* /usr/lib/
-    - COPY --from=imega/jq:latest /lib/* /lib/
     - COPY --from=hashicorp/packer:light /bin/packer /usr/sbin/packer
     - ADD https://raw.githubusercontent.com/ansible/ansible/ff3ee9c4bdac68909bcb769091a198a7c45e6350/lib/ansible/cli/inventory.py /usr/local/lib/python3.9/site-packages/ansible/cli/inventory.py
     - RUN chmod 0644 /usr/local/lib/python3.9/site-packages/ansible/cli/inventory.py
