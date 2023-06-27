@@ -54,13 +54,22 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Quay.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: |
-            daveshow/awx-ee
+            docker.io/${{ github.repository }}
             ghcr.io/${{ github.repository }}
+            quay.io/${{ github.repository }}
           flavor: |
             latest=auto
           tags: |
@@ -68,15 +77,6 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-
-      # - name: Build EE image
-      #   run: |
-      #     ansible-builder build \
-      #     --tag ghcr.io/daveshow/awx-ee:nightly \
-      #     --container-runtime docker \
-      #     -f execution-environment.yml \
-      #     -v 3
-
 
       - name: Build the context
         run: |
@@ -93,8 +93,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: VERSION=${{ env.VERSION }}
-
-      # - name: Push EE image
-      #   run: |
-      #     docker push ghcr.io/daveshow/awx-ee:nightly
